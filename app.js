@@ -227,14 +227,20 @@ function renderCard(entry) {
   const dateLabel = entry.uploadedAt ? formatDay(new Date(entry.uploadedAt)) : 'Unknown date';
   return `
     <div class="bg-white border border-slate-200 rounded-lg overflow-hidden flex flex-col">
-      <div class="aspect-video bg-slate-100 flex items-center justify-center overflow-hidden">
+      <button
+        type="button"
+        data-action="preview"
+        data-name="${escapeHtml(entry.name)}"
+        class="aspect-video bg-slate-100 flex items-center justify-center overflow-hidden hover:bg-slate-200 transition-colors cursor-zoom-in group"
+        title="Click to preview"
+      >
         <img
           src="${escapeHtml(rawUrl)}"
           alt="${escapeHtml(entry.name)}"
           loading="lazy"
-          class="max-h-full max-w-full object-contain"
+          class="max-h-full max-w-full object-contain group-hover:opacity-90 transition-opacity"
         />
-      </div>
+      </button>
       <div class="p-3 flex flex-col gap-2 flex-1">
         <div class="min-w-0">
           <p class="text-sm font-medium text-slate-900 truncate" title="${escapeHtml(entry.name)}">${escapeHtml(entry.name)}</p>
@@ -276,6 +282,10 @@ async function onCardAction(event) {
   const action = btn.dataset.action;
   const name = btn.dataset.name;
 
+  if (action === 'preview') {
+    openPreview(name);
+    return;
+  }
   if (action === 'copy-url') {
     await copyToClipboard(pagesUrlFor(name));
     toast(`Copied URL for ${name}`);
@@ -344,6 +354,66 @@ function confirmDialog(message) {
     const onCancel = () => { cleanup(); resolve(false); };
     $('confirm-ok').addEventListener('click', onOk);
     $('confirm-cancel').addEventListener('click', onCancel);
+  });
+}
+
+function formatBytes(bytes) {
+  if (bytes == null) return '';
+  if (bytes < 1024) return `${bytes} B`;
+  if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(0)} KB`;
+  return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
+}
+
+let previewCurrentName = null;
+
+function openPreview(name) {
+  const entry = state.files.find((f) => f.name === name);
+  if (!entry) return;
+  previewCurrentName = name;
+  const modal = $('preview-modal');
+  const img = $('preview-image');
+  $('preview-name').textContent = name;
+  const dateLabel = entry.uploadedAt ? formatDay(new Date(entry.uploadedAt)) : 'Unknown date';
+  const sizeLabel = formatBytes(entry.size);
+  $('preview-meta').textContent = [dateLabel, sizeLabel].filter(Boolean).join(' \u00b7 ');
+  img.src = `${RAW_BASE}/${encodeURIComponent(name)}`;
+  img.alt = name;
+  img.onload = () => {
+    const w = img.naturalWidth;
+    const h = img.naturalHeight;
+    if (w && h) {
+      $('preview-meta').textContent = [dateLabel, `${w}\u00d7${h} px`, sizeLabel]
+        .filter(Boolean)
+        .join(' \u00b7 ');
+    }
+  };
+  modal.style.display = 'flex';
+}
+
+function closePreview() {
+  $('preview-modal').style.display = 'none';
+  $('preview-image').src = '';
+  previewCurrentName = null;
+}
+
+function bindPreview() {
+  const modal = $('preview-modal');
+  $('preview-close').addEventListener('click', closePreview);
+  modal.addEventListener('click', (e) => {
+    if (e.target === modal) closePreview();
+  });
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && modal.style.display === 'flex') closePreview();
+  });
+  $('preview-copy-url').addEventListener('click', async () => {
+    if (!previewCurrentName) return;
+    await copyToClipboard(pagesUrlFor(previewCurrentName));
+    toast(`Copied URL for ${previewCurrentName}`);
+  });
+  $('preview-copy-html').addEventListener('click', async () => {
+    if (!previewCurrentName) return;
+    await copyToClipboard(htmlSnippetFor(previewCurrentName));
+    toast(`Copied HTML for ${previewCurrentName}`);
   });
 }
 
@@ -476,6 +546,7 @@ function init() {
   renderAuthStatus();
   bindDropZone();
   bindSettings();
+  bindPreview();
   $('refresh-btn').addEventListener('click', refresh);
   refresh();
 }
