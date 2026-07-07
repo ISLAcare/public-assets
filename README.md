@@ -38,7 +38,7 @@ Two work; the app defaults to the Pages URL when you press Copy URL.
 ## Notes
 
 - Everything in `/images/` is **public forever**. No patient data, NHS numbers, or internal-only material.
-- File size limit is 100 MB per file. The app rejects anything larger.
+- File size limit is 5 MB per file. The app rejects anything larger. Email images rarely need to be bigger; run large files through an optimiser first.
 - The Pages URL updates within a minute of upload once Pages rebuilds. The raw URL is instant.
 - To replace an image and keep the URL stable, upload a file with the same name. Old versions remain in git history.
 - Filenames are auto-slugified (lowercased, spaces to hyphens). If a name collides with an existing file, `-2`, `-3` and so on is appended.

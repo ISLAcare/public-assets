@@ -401,8 +401,8 @@ async function handleFiles(fileList) {
   progressEl.innerHTML = '';
 
   for (const file of files) {
-    if (file.size > 100 * 1024 * 1024) {
-      toast(`${file.name} is over 100 MB and cannot be uploaded`, 'error');
+    if (file.size > 5 * 1024 * 1024) {
+      toast(`${file.name} is over 5 MB and cannot be uploaded`, 'error');
       continue;
     }
     const row = document.createElement('div');
